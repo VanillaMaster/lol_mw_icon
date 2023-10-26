@@ -34,7 +34,7 @@ const limiter = new Bottleneck({
 });
 
 
-const client = new Client("https://vanillasandbox.fandom.com/api.php");
+const client = new Client(`https://${process.env.realm!}.fandom.com/api.php`);
 {
     const data = await limiter.schedule(() => client.logIn(process.env.user!, process.env.password!))
     ProgressBarr.increment()
