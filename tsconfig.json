@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "module": "NodeNext",
+        "target": "ES2022",
+        "sourceMap": true,
+        "outDir": "dist",
+        "strict": true,
+        "noImplicitAny": true,
+        "paths": {},
+        "checkJs": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        // "rootDir": "."
+        "types": [
+            "node"
+        ]
+    },
+    "include": [
+        "src/**/*",
+    ],
+    "exclude": [
+        "node_modules",
+        "**/node_modules/*",
+        "dist/**/*"
+    ]
+}
