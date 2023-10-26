@@ -20,7 +20,7 @@ const STATS = {
 const ProgressBarr = new cliProgress.SingleBar({
     clearOnComplete: true,
     stopOnComplete: true,
-    hideCursor: true,
+    // hideCursor: true,
     format: ` [{bar}] {percentage}% | ${colors.green("{uptodate}")}:${colors.yellow("{outdate}")}:${colors.red("{missing}")} | ${colors.gray("{iconsWithoutImage}")}:${colors.blue("{faildToFetch}")} | ETA: {eta}s | {value}/{total} {msg} `,
 }, cliProgress.Presets.shades_classic);
 
@@ -32,7 +32,7 @@ let __flag__: boolean = true;
 let __promise__: Promise<any> = Promise.resolve();
 {
     async function onShutdown() {
-        ProgressBarr.increment(0, { msg: "| shutting down..."});
+        ProgressBarr.increment(0, { msg: "| shutting down... "});
         __flag__ = false;
         await __promise__;
     }
