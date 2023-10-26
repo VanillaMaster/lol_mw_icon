@@ -17,3 +17,11 @@ entry points:
  - ```/dist/icon.js``` - check + update icons
 
 *q: why dont u put it in scripts? a: do it yourself if want it this much (interrupting npm scrupt isnt fun)*
+
+## required env
+ - user - bot login
+ - password - bot password
+ - realm - fandom realm
+
+## TODO
+ - flag out override on outdate
