@@ -16,7 +16,7 @@ entry points:
  - ```/dist/indexes.js``` - update indexes
  - ```/dist/icon.js``` - check + update icons
 
-*q: why dont u put it in scripts? a: do it yourself if want it this much (interrupting npm scrupt isnt fun)*
+*q: why dont u put it in scripts? a: do it yourself if want it this much (interrupting npm script isnt fun)*
 
 ## required env
  - user - bot login
