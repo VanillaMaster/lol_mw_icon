@@ -57,7 +57,7 @@ const limiter = new Bottleneck({
     maxConcurrent: 1
 });
 
-const client = new Client("https://vanillasandbox.fandom.com/api.php");
+const client = new Client(`https://${process.env.realm!}.fandom.com/api.php`);
 {
     const data = await limiter.schedule(() => client.logIn(process.env.user!, process.env.password!))
     if (data?.login?.result != "Success") throw new Error(JSON.stringify(data))
@@ -144,7 +144,7 @@ async function processEntry(page: any, entries: Map<string, any>){
         STATS.missing++;
         //upload image
         const token = await limiter.schedule(() => client.getCSRFToken());
-        const data = await limiter.schedule(() => client.uploadFile(token, imageInfo.data, imageInfo.name, "== License ==\n{{Fairuse}}\n\n[[Category:Profile-Icons-V1]]"));
+        const data = await limiter.schedule(() => client.uploadFile(token, imageInfo.data, imageInfo.name, "== License ==\n{{Fairuse}}\n\n[[Category:Profile-Icons-V1]]", true));
         if ("error" in data) {
             debugger;
             throw new Error(JSON.stringify(data.error));

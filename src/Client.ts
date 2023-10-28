@@ -68,15 +68,16 @@ export class Client {
         return token;
     }
 
-    async uploadFile(token: string, file: ArrayBuffer, name: string, content: string){
+    async uploadFile(token: string, file: ArrayBuffer, name: string, content: string, forced: boolean = false){
         const form = new FormData();
         form.append("action", "upload");
         form.append("filename", name);
         form.append("token", token);
         form.append("comment", "automatic upload")
         form.append("text", content);
+
+        if (forced) form.append("ignorewarnings", "1");
         
-        // form.append("ignorewarnings", "1");
         form.append("format", "json");
         form.append("formatversion", "2");
 
