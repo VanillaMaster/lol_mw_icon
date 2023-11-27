@@ -14,22 +14,14 @@ const MIME_TO_EXT: Record<string, string> = {
     "image/jpeg": "jpeg"
 };
 
-type RiotIconEntry = {
-    imagePath?: string;
-    id: number;
-    image?: {
-        mime: string;
-    },
-    descriptions: {
-        region: string;
-        description: string;
-    }[];
-    rarities: {
-        region: string;
-        rarity: number;
-    }[];
-    sets?: string[];
-};
+declare global {
+    interface RiotIconEntry {
+        image?: {
+            mime: string;
+        },
+        sets?: string[];
+    }
+}
 
 
 const resp = await fetch("https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/summoner-icons.json");
@@ -181,7 +173,7 @@ async function uploadImage(id: number, mime: string, forced?: boolean, content?:
 
     const name = `Profile-Icons-V1-${id}.${MIME_TO_EXT[mime]}`;
     
-    const result = await client.uploadFile_(buff, name, {
+    const result = await client.uploadFile(buff, name, {
         content,
         forced
     });
@@ -207,7 +199,7 @@ async function uploadPage(id: number, entry: RiotIconEntry) {
 
     const name = `Module:Profile-Icons/V1/icon/${id}`
     const text = `return ${Stringify.lua(finalEntry, 4)}`
-    const resp = await client.updateOrCreatePage_(name, text);
+    const resp = await client.updateOrCreatePage(name, text);
 
     if ("error" in resp) {
         debugger
@@ -220,7 +212,7 @@ async function uploadPage(id: number, entry: RiotIconEntry) {
 }
 
 async function saveLock(lock: PNGLock) {
-    const result = await client.uploadFile_(lock.toBuffer(), LOCKFILE_NAME, {
+    const result = await client.uploadFile(lock.toBuffer(), LOCKFILE_NAME, {
         forced: true
     })
     if ("error" in result) {

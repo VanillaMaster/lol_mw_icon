@@ -1,7 +1,5 @@
 import { CookieJar } from 'tough-cookie';
 import { CookieAgent } from 'http-cookie-agent/undici';
-import { Limiter } from './limiter.js';
-
 // import { createHash } from "node:crypto";
 
 const MAX_ATTEMPTS = 2;
@@ -103,7 +101,7 @@ namespace API {
 }
 
 export class Client {
-    constructor(path: string, limiter?: Limiter){
+    constructor(path: string){
         this.root = new URL(path);
 
         this.processQueue = this.processQueue.bind(this);
@@ -209,33 +207,33 @@ export class Client {
         return token;
     }
 
-    async uploadFile(token: string, file: ArrayBuffer, name: string, content: string, forced: boolean = false){
-        const form = new FormData();
-        form.append("action", "upload");
-        form.append("filename", name);
-        form.append("token", token);
-        form.append("comment", "automatic upload")
-        form.append("text", content);
+    // async uploadFile(token: string, file: ArrayBuffer, name: string, content: string, forced: boolean = false){
+    //     const form = new FormData();
+    //     form.append("action", "upload");
+    //     form.append("filename", name);
+    //     form.append("token", token);
+    //     form.append("comment", "automatic upload")
+    //     form.append("text", content);
 
-        if (forced) form.append("ignorewarnings", "1");
+    //     if (forced) form.append("ignorewarnings", "1");
         
-        form.append("format", "json");
-        form.append("formatversion", "2");
+    //     form.append("format", "json");
+    //     form.append("formatversion", "2");
 
-        form.append("file", new Blob([file]))
+    //     form.append("file", new Blob([file]))
 
-        const body = await fetch(this.root, {
-            dispatcher: this.agent,
-            method: "POST",
-            body: form
-        });
+    //     const body = await fetch(this.root, {
+    //         dispatcher: this.agent,
+    //         method: "POST",
+    //         body: form
+    //     });
 
-        const data = await body.json();
+    //     const data = await body.json();
 
-        return data;
-    }
+    //     return data;
+    // }
 
-    async uploadFile_(file: ArrayBuffer, name: string, { content, forced = false }: { content?: string, forced?: boolean } = {}){
+    async uploadFile(file: ArrayBuffer, name: string, { content, forced = false }: { content?: string, forced?: boolean } = {}){
         const form = new FormData();
         form.append("action", "upload");
         form.append("filename", name);
@@ -268,29 +266,29 @@ export class Client {
         return data!;
     }
 
-    async updateFile(token: string, file: ArrayBuffer, name: string){
-        const form = new FormData();
-        form.append("action", "upload");
-        form.append("filename", name);
-        form.append("token", token);
-        form.append("comment", "automatic upload")
+    // async updateFile(token: string, file: ArrayBuffer, name: string){
+    //     const form = new FormData();
+    //     form.append("action", "upload");
+    //     form.append("filename", name);
+    //     form.append("token", token);
+    //     form.append("comment", "automatic upload")
         
-        form.append("ignorewarnings", "1");
-        form.append("format", "json");
-        form.append("formatversion", "2");
+    //     form.append("ignorewarnings", "1");
+    //     form.append("format", "json");
+    //     form.append("formatversion", "2");
 
-        form.append("file", new Blob([file]))
+    //     form.append("file", new Blob([file]))
 
-        const body = await fetch(this.root, {
-            dispatcher: this.agent,
-            method: "POST",
-            body: form
-        });
+    //     const body = await fetch(this.root, {
+    //         dispatcher: this.agent,
+    //         method: "POST",
+    //         body: form
+    //     });
 
-        const data = await body.json();
+    //     const data = await body.json();
 
-        return data;
-    } 
+    //     return data;
+    // } 
 
     async getImageInfo(titles: string[]){
         const url = new URL(this.root);
@@ -316,97 +314,76 @@ export class Client {
     }
 
 
-    async getPage(title: string){
-        const url = new URL(this.root);
-        url.searchParams.append("action", "query");
-        url.searchParams.append("prop", "revisions");
-        url.searchParams.append("rvprop", ["content"].join("|"));
-        url.searchParams.append("rvslots", "*");
-        url.searchParams.append("rvdir", "older");
-        url.searchParams.append("rvlimit", "1");
-        url.searchParams.append("format", "json");
-        url.searchParams.append("titles", title)
+    // async getPage(title: string){
+    //     const url = new URL(this.root);
+    //     url.searchParams.append("action", "query");
+    //     url.searchParams.append("prop", "revisions");
+    //     url.searchParams.append("rvprop", ["content"].join("|"));
+    //     url.searchParams.append("rvslots", "*");
+    //     url.searchParams.append("rvdir", "older");
+    //     url.searchParams.append("rvlimit", "1");
+    //     url.searchParams.append("format", "json");
+    //     url.searchParams.append("titles", title)
         
-        url.searchParams.append("formatversion", "2")
+    //     url.searchParams.append("formatversion", "2")
 
-        const body = await fetch(url, {
-            dispatcher: this.agent,
-            method: "GET",
-        });
+    //     const body = await fetch(url, {
+    //         dispatcher: this.agent,
+    //         method: "GET",
+    //     });
 
-        const data = await body.json();
+    //     const data = await body.json();
 
-        return data;
-    }
+    //     return data;
+    // }
 
-    async createPage(token: string, title: string, content: string){
-        const form = new FormData();
-        form.append("action", "edit");
-        form.append("token", token)
-        form.append("title", title)
-        form.append("text", content);
+    // async createPage(token: string, title: string, content: string){
+    //     const form = new FormData();
+    //     form.append("action", "edit");
+    //     form.append("token", token)
+    //     form.append("title", title)
+    //     form.append("text", content);
 
-        form.append("bot", "1");
-        form.append("format", "json");
+    //     form.append("bot", "1");
+    //     form.append("format", "json");
 
-        form.append("createonly", "1")
+    //     form.append("createonly", "1")
 
-        const body = await fetch(this.root, {
-            dispatcher: this.agent,
-            method: "POST",
-            body: form
-        });
+    //     const body = await fetch(this.root, {
+    //         dispatcher: this.agent,
+    //         method: "POST",
+    //         body: form
+    //     });
 
-        const data = await body.json();
+    //     const data = await body.json();
 
-        return data;
-    }
+    //     return data;
+    // }
 
-    async updatePage(token: string, title: string, content: string){
-        const form = new FormData();
-        form.append("action", "edit");
-        form.append("token", token)
-        form.append("title", title)
-        form.append("text", content);
+    // async updatePage(token: string, title: string, content: string){
+    //     const form = new FormData();
+    //     form.append("action", "edit");
+    //     form.append("token", token)
+    //     form.append("title", title)
+    //     form.append("text", content);
 
-        form.append("bot", "1");
-        form.append("format", "json");
+    //     form.append("bot", "1");
+    //     form.append("format", "json");
 
-        form.append("nocreate", "1")
+    //     form.append("nocreate", "1")
 
-        const body = await fetch(this.root, {
-            dispatcher: this.agent,
-            method: "POST",
-            body: form
-        });
+    //     const body = await fetch(this.root, {
+    //         dispatcher: this.agent,
+    //         method: "POST",
+    //         body: form
+    //     });
 
-        const data = await body.json();
+    //     const data = await body.json();
 
-        return data;
-    }
+    //     return data;
+    // }
 
-    async updateOrCreatePage(token: string, title: string, content: string) {
-        const form = new FormData();
-        form.append("action", "edit");
-        form.append("token", token)
-        form.append("title", title)
-        form.append("text", content);
-
-        form.append("bot", "1");
-        form.append("format", "json");
-
-        const body = await fetch(this.root, {
-            dispatcher: this.agent,
-            method: "POST",
-            body: form
-        });
-
-        const data = await body.json();
-
-        return data;
-    }
-
-    async updateOrCreatePage_(title: string, content: string) {
+    async updateOrCreatePage(title: string, content: string) {
         const form = new FormData();
         form.append("action", "edit");
         form.append("title", title)
