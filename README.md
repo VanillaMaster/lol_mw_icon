@@ -1,7 +1,7 @@
 # lol_mw_icon
 script to upload lol icons to mw
 
-## build
+## Build
 install dependencies
 ```
 npm install
@@ -11,13 +11,13 @@ and then build it
 npm run build
 ```
 
-## how2use
+## How2use
 entry points:
  - ```npm run index-data``` - update indexes
  - ```npm run icon-data``` - check + update icons
 *run scripts dirrectly if planning to interrupt it*
 
-## required env
+## Required env
  - `user` - bot login
  - `password` - bot password
  - `realm` - fandom realm
@@ -25,13 +25,13 @@ entry points:
 ## TODO
  - flag out override on outdate
 
-## whats going on ?
+## Whats going on ?
 every icon uploaded using schema ```File:Profile-Icons-V1-<id>.<ext>```<br>
 every icon have associated data uploaded in ```Module:Profile-Icons/V1/icon/<id>```<br>
 alos there are indexes placed in ```Module:Profile-Icons/V1/index``` - for global index<br>
 and ```Module:Profile-Icons/V1/index/<name>``` - for any specific index
 
-### content of indexes
+### Content of indexes
 global:
 ```lua
 {
@@ -39,7 +39,8 @@ global:
     --[[ ... ]]
 }
 ```
-specific (name):
+specific:
+- name:
 ```lua
 {
     ["<name>"] = {
@@ -49,9 +50,9 @@ specific (name):
     --[[ ... ]]
 }
 ```
-### how to find icon using this data
-#### using id
-- validate id (check it in index)
+### How to find icon using this data
+#### Using id
+- validate id *check it in index*
 - load icon data
 ```lua
 local data = require("Module:Profile-Icons/V1/icon/" .. id)
@@ -66,8 +67,8 @@ local mime = data["image"]["mime"]
 local imagePath = "File:Profile-Icons-V1-" .. id .. "." .. ext
 ```
 
-#### using name
- - validate name (check it in index)
+#### Using name
+ - validate name *check it in index*
  - get file id
 ```lua
 local id = index[<name>][<offset>]
