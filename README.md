@@ -15,6 +15,7 @@ npm run build
 entry points:
  - ```npm run index-data``` - update indexes
  - ```npm run icon-data``` - check + update icons
+
 *run scripts dirrectly if planning to interrupt it*
 
 ## Required env
