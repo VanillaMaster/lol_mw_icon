@@ -35,18 +35,44 @@ type RiotIconEntry = {
 const resp = await fetch("https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/summoner-icons.json");
 const data: RiotIconEntry[] = await resp.json();
 
-const initalLoadBar = new cliProgress.SingleBar({
-    format: ` [{bar}] {percentage}% | ${colors.green("{green}")}:${colors.red("{red}")}:${colors.gray("{gray}")} | {value}/{total} `
-}, cliProgress.Presets.shades_classic);
+// const initalLoadBar = new cliProgress.SingleBar({
+//     format: ` [{bar}] {percentage}% | ${colors.green("{green}")}:${colors.red("{red}")}:${colors.gray("{gray}")} | {value}/{total} `
+// }, cliProgress.Presets.shades_classic);
 const initalLoadBarState = {
     green: 0,
     red: 0,
     gray: 0
 }
+const imageUpdateBarState = {
+    green: 0,
+    yellow: 0,
+    red: 0
+}
+const dataUpdateBarState = {
+    green: 0,
+    yellow: 0,
+    red: 0
+}
+
+
+const progressBar = new cliProgress.MultiBar({
+    // forceRedraw: true,
+}, cliProgress.Presets.shades_classic);
+
+const initalLoadBar = progressBar.create(data.length, 0, {...initalLoadBarState}, {
+    format: `loading images: [{bar}] {percentage}% | ${colors.green("{green}")}:${colors.red("{red}")}:${colors.gray("{gray}")} | {value}/{total} `
+});
+const imageUpdateBar = progressBar.create(data.length, 0, {...imageUpdateBarState}, {
+    format: `updating images: [{bar}] {percentage}% | ${colors.green("{green}")}:${colors.yellow("{yellow}")}:${colors.red("{red}")} | {value}/{total} `
+});
+const dataUpdateBar = progressBar.create(data.length, 0, {...dataUpdateBarState}, {
+    format: `updating data: [{bar}] {percentage}% | ${colors.green("{green}")}:${colors.yellow("{yellow}")}:${colors.red("{red}")} | {value}/{total} `
+});
 
 
 initalLoadBar.start(data.length, 0, {...initalLoadBarState});
 
+//insert set data
 {
     const resp = await fetch("https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/summoner-icon-sets.json");
     const setInfo: { displayName: string; icons: number[]; }[] = await resp.json();
@@ -76,8 +102,8 @@ function getImages(chunk: RiotIconEntry[]) {
             entry => fetch(`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${entry.id}.jpg`)
             .then(resp => {
                 if (!resp.ok) {
-                    // initalLoadBarState.red++;
-                    // initalLoadBar.increment(1, initalLoadBarState);
+                    initalLoadBarState.red++;
+                    initalLoadBar.increment(1, initalLoadBarState);
                     throw new Error(resp.statusText)
                 }
                 const mime = resp.headers.get("Content-Type")!.split(";")[0];
@@ -87,8 +113,8 @@ function getImages(chunk: RiotIconEntry[]) {
             })
             .then(buff => {
                 const val = { hash: createHash("md5").update(new Uint8Array(buff)).digest("hex"), id: entry.id };
-                // initalLoadBarState.green++;
-                // initalLoadBar.increment(1, initalLoadBarState);
+                initalLoadBarState.green++;
+                initalLoadBar.increment(1, initalLoadBarState);
                 return val;
             })
         )
@@ -162,7 +188,8 @@ async function uploadImage(id: number, mime: string, forced?: boolean, content?:
 
     if ("error" in result) {
         if (result.error.code == "fileexists-no-change") {
-            console.log("fileexists-no-change");
+            progressBar.log(`fileexists-no-change (id: ${id})\n`);
+            // console.log("fileexists-no-change");
             return
         }
         debugger;
@@ -193,7 +220,7 @@ async function uploadPage(id: number, entry: RiotIconEntry) {
 }
 
 async function saveLock(lock: PNGLock) {
-    const result = await client.uploadFile_(oldLock.toBuffer(), LOCKFILE_NAME, {
+    const result = await client.uploadFile_(lock.toBuffer(), LOCKFILE_NAME, {
         forced: true
     })
     if ("error" in result) {
@@ -224,8 +251,7 @@ const lock = new PNGLock();
     processChunk(prevChunk, lock);
 }
 
-initalLoadBar.stop();
-debugger
+// initalLoadBar.stop();
 
 const client = new Client(`https://${process.env.realm!}.fandom.com/api.php`);
 {
@@ -245,13 +271,15 @@ const oldLock = await (async function (){
     }
     const { query: { pages: [ page ] } } = info;
     if (page.missing) {
-        console.log("lock doesnt exists");
+        progressBar.log("lock doesnt exists\n");
+        // console.log("lock doesnt exists");
         return new PNGLock();
     }
     const sha1 = createHash("sha1").update(new Uint8Array(lock.toBuffer())).digest("hex")
     const { imageinfo: [ oldLockInfo ] } = page;
     if (sha1 == oldLockInfo.sha1) {
-        console.log("everything is updated");
+        progressBar.log("everything is updated\n");
+        // console.log("everything is updated");
         process.exit(0);
     }
 
@@ -260,10 +288,35 @@ const oldLock = await (async function (){
     return PNGLock.fromBuffer(buff);
 })();
 
-let i = 1;
+
+/**
+ * safe shutdown (ctrl + c)
+ */
+async function onShutdown() {
+    onShutdown.internalPromise ??= (async function() {
+        onShutdown.flag = true;
+        await onShutdown.promise;
+        await saveLock(oldLock);
+        progressBar.stop();
+    })();
+    await onShutdown.internalPromise;
+}
+onShutdown.flag = false;
+declare namespace onShutdown {
+    let promise: Promise<unknown>;
+    let internalPromise: Promise<unknown>;
+    let flag: boolean;
+}
+process.on("SIGINT", onShutdown);
+
 
 for (const entry of data) {
     if (!("imagePath" in entry)) continue;
+    if (onShutdown.flag) break;
+    await (onShutdown.promise = processEntry(entry));
+}
+
+async function processEntry(entry: RiotIconEntry) {
     if (entry.image == undefined) throw new Error("unreachable");
     const id = entry.id;
     
@@ -276,16 +329,23 @@ for (const entry of data) {
             // upload new image
             await uploadImage(id, mime, true, IMAGE_TEMPLATE);
             oldLock.image.set(id, md5_new);
-            i++;
-            console.log("image", id, "new");
+            imageUpdateBarState.red++;
+            imageUpdateBar.increment(1, imageUpdateBarState);
+            // progressBar.log(`image ${id} new\n`);
+            // console.log("image", id, "new");
         } else if (md5_new != md5_old) {
             //update existing one
             await uploadImage(id, mime, true);
             oldLock.image.set(id, md5_new);
-            i++;
-            console.log("image", id, "update");
+            imageUpdateBarState.yellow++;
+            imageUpdateBar.increment(1, imageUpdateBarState);
+            // progressBar.log(`image ${id} update\n`);
+            // console.log("image", id, "update");
         } else {
-            console.log("image", id, "fine");
+            imageUpdateBarState.green++;
+            imageUpdateBar.increment(1, imageUpdateBarState);
+            // progressBar.log(`image ${id} fine\n`);
+            // console.log("image", id, "fine");
         }
         
     }
@@ -297,25 +357,26 @@ for (const entry of data) {
             // upload new article
             await uploadPage(id, entry);
             oldLock.data.set(id, md5_new);
-            i++;
-            console.log("data", id, "new");
+            dataUpdateBarState.red++;
+            dataUpdateBar.increment(1, dataUpdateBarState);
+            // progressBar.log(`data ${id} new\n`);
+            // console.log("data", id, "new");
         } else if (md5_new != md5_old) {
             //update existing one
             await uploadPage(id, entry);
             oldLock.data.set(id, md5_new);
-            i++;
-            console.log("data", id, "update");
+            dataUpdateBarState.yellow++;
+            dataUpdateBar.increment(1, dataUpdateBarState);
+            // progressBar.log(`data ${id} update\n`);
+            // console.log("data", id, "update");
         } else {
-            console.log("data", id, "fine");
+            dataUpdateBarState.green++;
+            dataUpdateBar.increment(1, dataUpdateBarState);
+            // progressBar.log(`data ${id} fine\n`);
+            // console.log("data", id, "fine");
         }
 
     }
-
-    if (i % 100 == 0) {
-        console.log("updateing lockfile");
-        await saveLock(oldLock);
-    }
-
 }
 
-await saveLock(oldLock);
+await onShutdown();

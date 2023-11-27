@@ -34,7 +34,7 @@ export class PNGLock {
                 buff.set(hash, index);
                 index += MD5_BYTE_LENGTH;
             }
-            chunks.push(text.encode("data", Buffer.from(buff).toString("base64")));
+            chunks.push(text.encode("data", buff.toString("base64")));
         }
         if (this.image.size > 0) {
             const buff = Buffer.alloc(this.image.size * (UINT32_BYTE_LENGTH + MD5_BYTE_LENGTH))
@@ -50,7 +50,7 @@ export class PNGLock {
                 buff.set(hash, index);
                 index += MD5_BYTE_LENGTH;
             }
-            chunks.push(text.encode("image", Buffer.from(buff).toString("base64")));
+            chunks.push(text.encode("image", buff.toString("base64")));
         }
         chunks.push(IEND);
 
