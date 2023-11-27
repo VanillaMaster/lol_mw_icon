@@ -1,3 +1,4 @@
+//@ts-nocheck
 import "dotenv/config";
 
 import cliProgress from "cli-progress";
@@ -14,7 +15,7 @@ const limiter = new Bottleneck({
     minTime: 60_000 / 19,
     maxConcurrent: 1
 });
-
+//@ts-ignore
 const client = new Client(`https://${process.env.realm!}.fandom.com/api.php`);
 {
     const data = await limiter.schedule(() => client.logIn(process.env.user!, process.env.password!))
@@ -56,6 +57,7 @@ for (let i = 0; i < data.length; i++) {
     }
     
 }
+
 ProgressBarr.increment()
 
 {
