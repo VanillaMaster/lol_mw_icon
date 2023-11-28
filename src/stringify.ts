@@ -22,30 +22,6 @@ function objectTypes(value: null | Json[] | { [key: string]: Json }): JSON_TYPE 
     throw new Error("unreachable");
 }
 
-
-function replacement(character: string) {
-    switch (character) {
-        case '"':
-        case "'":
-        case '\\':
-            return '\\' + character
-        case '\n':
-            return '\\n'
-        case '\r':
-            return '\\r'
-        case '\u2028':
-            return '\\u2028'
-        case '\u2029':
-            return '\\u2029'
-        default:
-            throw new Error("unreachable")
-    }
-}
-
-function escapeString(string: string) {
-    return string.replace(/["'\\\n\r\u2028\u2029]/g, replacement)
-}
-
 function getType(value: Json): JSON_TYPE {
     const type = (typeof value) as "string" | "number" | "boolean" | "object";
     ///@ts-ignore
@@ -58,13 +34,12 @@ function canonical_inner(value: Json, spaces: number, depth: number): string {
     const padding = " ".repeat(spaces * depth);
 
     switch (getType(value)) {
-        case JSON_TYPE.STRING: {
-            return `"${escapeString(value as string)}"`;
-        }
+        case JSON_TYPE.STRING:
         case JSON_TYPE.NUMBER:
         case JSON_TYPE.NULL:
         case JSON_TYPE.BOOLEAN: {
-            return `${value}`
+            return JSON.stringify(value);
+            // return `${value}`
         }
         case JSON_TYPE.ARRAY: {
             const self = value as Json[];
@@ -80,7 +55,7 @@ function canonical_inner(value: Json, spaces: number, depth: number): string {
             keys.sort();
             const container: string[] = [];
             for (const key of keys) {
-                container.push(`${padding}"${escapeString(key)}": ${canonical_inner(self[key], spaces, depth + 1)}`)
+                container.push(`${padding}${JSON.stringify(key)/*escapeString(key)*/}: ${canonical_inner(self[key], spaces, depth + 1)}`)
             }
             return `{${eol}${prefix}${container.join(`,${eol}${prefix}`)}${eol}${padding}}`
         }
@@ -94,16 +69,10 @@ function lua_inner(value: Json, spaces: number, depth: number): string {
     const padding = " ".repeat(spaces * depth);
 
     switch (getType(value)) {
-        case JSON_TYPE.STRING: {
-            return `"${escapeString(value as string)}"`;
-        }
+        case JSON_TYPE.STRING:
         case JSON_TYPE.NUMBER:
-        case JSON_TYPE.BOOLEAN: {
-            return `${value}`
-        }
-        case JSON_TYPE.NULL: {
-            return `nil`;
-        }
+        case JSON_TYPE.BOOLEAN: return JSON.stringify(value)
+        case JSON_TYPE.NULL: return `nil`;
         case JSON_TYPE.ARRAY: {
             const self = value as Json[];
             const container: string[] = [];
@@ -116,7 +85,7 @@ function lua_inner(value: Json, spaces: number, depth: number): string {
             const self = value as { [key: string]: Json };
             const container: string[] = [];
             for (const key in self) {
-                container.push(`${padding}["${escapeString(key)}"] = ${lua_inner(self[key], spaces, depth + 1)}`)
+                container.push(`${padding}[${JSON.stringify(key)/*escapeString(key)*/}] = ${lua_inner(self[key], spaces, depth + 1)}`)
             }
             return `{${eol}${prefix}${container.join(`,${eol}${prefix}`)}${eol}${padding}}`
         }
