@@ -1,15 +1,12 @@
 import "dotenv/config";
-import * as Stringify from "./stringify.js"
+import * as Stringify from "../stringify.js"
 import cliProgress from "cli-progress";
-import { Client } from "./Client.js";
+import { Client } from "../Client.js";
 import { createHash } from "node:crypto";
 import colors from "ansi-colors";
-import { PNGLock } from "./PNGLock.js";
+import { PNGLock } from "../PNGLock.js";
 import { readFile } from "node:fs/promises";
-import { createWriteStream } from "node:fs";
-
-const logStram = createWriteStream("./debug.log");
-const logger = new console.Console(logStram, logStram);
+import { logger } from "../logger.js";
 
 const IMAGE_TEMPLATE = await readFile("./image_template.txt", "utf-8");
 const LOCKFILE_NAME = "Profile-Icons-V1-lockfile.png"
@@ -27,6 +24,9 @@ declare global {
     }
 }
 
+function sleep(ms: number) {
+    return new Promise<void>(function (resolve){ setTimeout(resolve, ms) });
+}
 
 const resp = await fetch("https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/summoner-icons.json");
 const data: RiotIconEntry[] = await resp.json();
@@ -124,6 +124,8 @@ function processImages(data: PromiseSettledResult<{ hash: string; id: number; }>
             
         } else {
             debugger
+
+            throw new Error(result.reason);
         }
     }
 }
@@ -168,7 +170,7 @@ function* chunks(source: RiotIconEntry[], maxLength: number) {
     if (buffer.length > 0) yield buffer;
 }
 
-async function uploadImage(id: number, mime: string, forced?: boolean, content?: string){
+async function uploadImage(id: number, mime: string, forced?: boolean, content?: string) {
     const resp = await fetch(`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${id}.jpg`)
     const __mime = resp.headers.get("Content-Type")!.split(";")[0];
     if (__mime !== mime) throw new Error(`mime got changed (${mime} => ${__mime})`);
@@ -181,9 +183,13 @@ async function uploadImage(id: number, mime: string, forced?: boolean, content?:
         forced
     });
 
-    if ("error" in result) {
+    if ("error" in result) if (result.error.code == "readonly") {
+        logger.log(result.error.readonlyreason);
+        await sleep(1000 * 60 * 2);
+        return uploadImage(id, mime, forced, content);
+    } else {
         if (result.error.code == "fileexists-no-change") {
-            logger.log(`fileexists-no-change (id: ${id})`);
+            logger.log(`file-exists-no-change (id: ${id})`);
             // progressBar.log(`fileexists-no-change (id: ${id})\n`);
             // console.log("fileexists-no-change");
             return
@@ -205,7 +211,11 @@ async function uploadPage(id: number, entry: RiotIconEntry) {
     const text = `return ${Stringify.lua(finalEntry, 4)}`
     const resp = await client.updateOrCreatePage(name, text);
 
-    if ("error" in resp) {
+    if ("error" in resp) if (resp.error.code == "readonly") {
+        logger.log(resp.error.readonlyreason);
+        await sleep(1000 * 60 * 2);
+        return uploadPage(id, entry);
+    } else {
         debugger
         throw new Error(JSON.stringify(resp.error));
     }
@@ -213,13 +223,20 @@ async function uploadPage(id: number, entry: RiotIconEntry) {
         debugger
         throw new Error(JSON.stringify(resp.edit));
     }
+    if ("nochange" in resp.edit) {
+        logger.log(`data-exists-no-change (id: ${id})`)
+    }
 }
 
 async function saveLock(lock: PNGLock) {
     const result = await client.uploadFile(lock.toBuffer(), LOCKFILE_NAME, {
         forced: true
     })
-    if ("error" in result) {
+    if ("error" in result) if (result.error.code == "readonly") {
+        logger.log(result.error.readonlyreason);
+        await sleep(1000 * 60 * 2);
+        return saveLock(lock);
+    } else {
         debugger;
         throw new Error(JSON.stringify(result.error)); 
     }

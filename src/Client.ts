@@ -8,12 +8,33 @@ type priority = "high" | "medium" | "low";
 
 namespace API {
     export namespace Error {
-        type Code = "badtoken" | "fileexists-no-change";
-        export type Response = {
-            error: {
-                code: Code
-            }
+        
+        interface baseError {
+            code: string;
         }
+
+        interface readonlyError extends baseError {
+            code: "readonly";
+            info: string;
+            readonlyreason: string;
+        }
+
+        interface fileexistsNoChangeError extends baseError {
+            code: "fileexists-no-change";
+        }
+
+        interface badtokenError extends baseError {
+            code: "badtoken";
+        }
+
+        export interface Response {
+            error: (
+                readonlyError |
+                fileexistsNoChangeError |
+                badtokenError
+            )
+        }
+
     }
     export namespace Query {
 
@@ -92,7 +113,8 @@ namespace API {
                 contentmodel: string;
                 pageid: number;
                 result: string;
-                title: string
+                title: string;
+                nochange?: "";
             } & ({
                 result: "Success"
             })
