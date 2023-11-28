@@ -6,6 +6,10 @@ import { createHash } from "node:crypto";
 import colors from "ansi-colors";
 import { PNGLock } from "./PNGLock.js";
 import { readFile } from "node:fs/promises";
+import { createWriteStream } from "node:fs";
+
+const logStram = createWriteStream("./debug.log");
+const logger = new console.Console(logStram, logStram);
 
 const IMAGE_TEMPLATE = await readFile("./image_template.txt", "utf-8");
 const LOCKFILE_NAME = "Profile-Icons-V1-lockfile.png"
@@ -46,9 +50,8 @@ const dataUpdateBarState = {
     red: 0
 }
 
-
 const progressBar = new cliProgress.MultiBar({
-    // forceRedraw: true,
+    forceRedraw: true,
 }, cliProgress.Presets.shades_classic);
 
 const initalLoadBar = progressBar.create(data.length, 0, {...initalLoadBarState}, {
@@ -180,7 +183,8 @@ async function uploadImage(id: number, mime: string, forced?: boolean, content?:
 
     if ("error" in result) {
         if (result.error.code == "fileexists-no-change") {
-            progressBar.log(`fileexists-no-change (id: ${id})\n`);
+            logger.log(`fileexists-no-change (id: ${id})`);
+            // progressBar.log(`fileexists-no-change (id: ${id})\n`);
             // console.log("fileexists-no-change");
             return
         }
@@ -263,14 +267,17 @@ const oldLock = await (async function (){
     }
     const { query: { pages: [ page ] } } = info;
     if (page.missing) {
-        progressBar.log("lock doesnt exists\n");
+        logger.log(`lock doesnt exists`);
+        // progressBar.log("lock doesnt exists\n");
         // console.log("lock doesnt exists");
         return new PNGLock();
     }
     const sha1 = createHash("sha1").update(new Uint8Array(lock.toBuffer())).digest("hex")
     const { imageinfo: [ oldLockInfo ] } = page;
     if (sha1 == oldLockInfo.sha1) {
-        progressBar.log("everything is updated\n");
+        progressBar.stop();
+        console.log("everything is updated")
+        // progressBar.log("everything is updated\n");
         // console.log("everything is updated");
         process.exit(0);
     }
@@ -323,6 +330,7 @@ async function processEntry(entry: RiotIconEntry) {
             oldLock.image.set(id, md5_new);
             imageUpdateBarState.red++;
             imageUpdateBar.increment(1, imageUpdateBarState);
+            logger.log(`image ${id} new`);
             // progressBar.log(`image ${id} new\n`);
             // console.log("image", id, "new");
         } else if (md5_new != md5_old) {
@@ -331,11 +339,13 @@ async function processEntry(entry: RiotIconEntry) {
             oldLock.image.set(id, md5_new);
             imageUpdateBarState.yellow++;
             imageUpdateBar.increment(1, imageUpdateBarState);
+            logger.log(`image ${id} update`);
             // progressBar.log(`image ${id} update\n`);
             // console.log("image", id, "update");
         } else {
             imageUpdateBarState.green++;
             imageUpdateBar.increment(1, imageUpdateBarState);
+            logger.log(`image ${id} fine`);
             // progressBar.log(`image ${id} fine\n`);
             // console.log("image", id, "fine");
         }
@@ -351,6 +361,7 @@ async function processEntry(entry: RiotIconEntry) {
             oldLock.data.set(id, md5_new);
             dataUpdateBarState.red++;
             dataUpdateBar.increment(1, dataUpdateBarState);
+            logger.log(`data ${id} new`);
             // progressBar.log(`data ${id} new\n`);
             // console.log("data", id, "new");
         } else if (md5_new != md5_old) {
@@ -359,11 +370,13 @@ async function processEntry(entry: RiotIconEntry) {
             oldLock.data.set(id, md5_new);
             dataUpdateBarState.yellow++;
             dataUpdateBar.increment(1, dataUpdateBarState);
+            logger.log(`data ${id} update`);
             // progressBar.log(`data ${id} update\n`);
             // console.log("data", id, "update");
         } else {
             dataUpdateBarState.green++;
             dataUpdateBar.increment(1, dataUpdateBarState);
+            logger.log(`data ${id} fine`);
             // progressBar.log(`data ${id} fine\n`);
             // console.log("data", id, "fine");
         }
