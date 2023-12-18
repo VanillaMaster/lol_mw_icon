@@ -1,3 +1,5 @@
+//@ts-nocheck
+
 import "dotenv/config";
 import * as Stringify from "../stringify.js"
 import cliProgress from "cli-progress";
@@ -15,21 +17,21 @@ const MIME_TO_EXT: Record<string, string> = {
     "image/jpeg": "jpeg"
 };
 
-declare global {
-    interface RiotIconEntry {
-        image?: {
-            mime: string;
-        },
-        sets?: string[];
-    }
-}
+// declare global {
+//     interface RawRiotIconEntry {
+//         image?: {
+//             mime: string;
+//         },
+//         sets?: string[];
+//     }
+// }
 
 function sleep(ms: number) {
     return new Promise<void>(function (resolve){ setTimeout(resolve, ms) });
 }
 
 const resp = await fetch("https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/summoner-icons.json");
-const data: RiotIconEntry[] = await resp.json();
+const data: RawRiotIconEntry[] = await resp.json();
 
 // const initalLoadBar = new cliProgress.SingleBar({
 //     format: ` [{bar}] {percentage}% | ${colors.green("{green}")}:${colors.red("{red}")}:${colors.gray("{gray}")} | {value}/{total} `
@@ -42,12 +44,12 @@ const initalLoadBarState = {
 const imageUpdateBarState = {
     green: 0,
     yellow: 0,
-    red: 0
+    gray: 0
 }
 const dataUpdateBarState = {
     green: 0,
     yellow: 0,
-    red: 0
+    gray: 0
 }
 
 const progressBar = new cliProgress.MultiBar({
@@ -58,10 +60,10 @@ const initalLoadBar = progressBar.create(data.length, 0, {...initalLoadBarState}
     format: `loading images: [{bar}] {percentage}% | ${colors.green("{green}")}:${colors.red("{red}")}:${colors.gray("{gray}")} | {value}/{total} `
 });
 const imageUpdateBar = progressBar.create(data.length, 0, {...imageUpdateBarState}, {
-    format: `updating images: [{bar}] {percentage}% | ${colors.green("{green}")}:${colors.yellow("{yellow}")}:${colors.red("{red}")} | {value}/{total} `
+    format: `updating images: [{bar}] {percentage}% | ${colors.green("{green}")}:${colors.yellow("{yellow}")}:${colors.gray("{gray}")} | {value}/{total} `
 });
 const dataUpdateBar = progressBar.create(data.length, 0, {...dataUpdateBarState}, {
-    format: `updating data: [{bar}] {percentage}% | ${colors.green("{green}")}:${colors.yellow("{yellow}")}:${colors.red("{red}")} | {value}/{total} `
+    format: `updating data: [{bar}] {percentage}% | ${colors.green("{green}")}:${colors.yellow("{yellow}")}:${colors.gray("{gray}")} | {value}/{total} `
 });
 
 
@@ -91,7 +93,7 @@ initalLoadBar.start(data.length, 0, {...initalLoadBarState});
 
 //#region functions
 
-function getImages(chunk: RiotIconEntry[]) {
+function getImages(chunk: RawRiotIconEntry[]) {
     return Promise.allSettled(
         chunk.map(
             entry => fetch(`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${entry.id}.jpg`)
@@ -130,7 +132,7 @@ function processImages(data: PromiseSettledResult<{ hash: string; id: number; }>
     }
 }
 
-function transformRiotEntery(entry: RiotIconEntry) {
+function transformRiotEntery(entry: RawRiotIconEntry) {
     const { imagePath, ...info } = entry;
     const transform = {
         descriptions: info.descriptions.reduce(function(accum: Record<string, typeof props>, { region, ...props }) {
@@ -142,10 +144,10 @@ function transformRiotEntery(entry: RiotIconEntry) {
             return accum
         }, {})
     }
-    return Object.assign(info as Omit<RiotIconEntry, "descriptions" | "rarities">, transform);
+    return Object.assign(info as Omit<RawRiotIconEntry, "descriptions" | "rarities">, transform);
 }
 
-function processChunk(Chunk: RiotIconEntry[], lock: PNGLock) {
+function processChunk(Chunk: RawRiotIconEntry[], lock: PNGLock) {
     for (const entry of Chunk) {
         if (!((entry.image?.mime ?? "") in MIME_TO_EXT)) debugger;
         const canonical = Stringify.canonical(transformRiotEntery(entry));
@@ -154,8 +156,8 @@ function processChunk(Chunk: RiotIconEntry[], lock: PNGLock) {
     }
 }
 
-function* chunks(source: RiotIconEntry[], maxLength: number) {
-    let buffer: RiotIconEntry[] = [];
+function* chunks(source: RawRiotIconEntry[], maxLength: number) {
+    let buffer: RawRiotIconEntry[] = [];
     for (const entry of source) {
         if ("imagePath" in entry) {
             if (buffer.push(entry) >= maxLength) {
@@ -204,7 +206,7 @@ async function uploadImage(id: number, mime: string, forced?: boolean, content?:
 
 }
 
-async function uploadPage(id: number, entry: RiotIconEntry) {
+async function uploadPage(id: number, entry: RawRiotIconEntry) {
     const finalEntry = transformRiotEntery(entry);
 
     const name = `Module:Profile-Icons/V1/icon/${id}`
@@ -332,7 +334,7 @@ for (const entry of data) {
     await (onShutdown.promise = processEntry(entry));
 }
 
-async function processEntry(entry: RiotIconEntry) {
+async function processEntry(entry: RawRiotIconEntry) {
     if (entry.image == undefined) throw new Error("unreachable");
     const id = entry.id;
     
@@ -345,7 +347,7 @@ async function processEntry(entry: RiotIconEntry) {
             // upload new image
             await uploadImage(id, mime, true, IMAGE_TEMPLATE);
             oldLock.image.set(id, md5_new);
-            imageUpdateBarState.red++;
+            imageUpdateBarState.gray++;
             imageUpdateBar.increment(1, imageUpdateBarState);
             logger.log(`image ${id} new`);
             // progressBar.log(`image ${id} new\n`);
@@ -376,7 +378,7 @@ async function processEntry(entry: RiotIconEntry) {
             // upload new article
             await uploadPage(id, entry);
             oldLock.data.set(id, md5_new);
-            dataUpdateBarState.red++;
+            dataUpdateBarState.gray++;
             dataUpdateBar.increment(1, dataUpdateBarState);
             logger.log(`data ${id} new`);
             // progressBar.log(`data ${id} new\n`);

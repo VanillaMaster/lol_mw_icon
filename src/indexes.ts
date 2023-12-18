@@ -12,7 +12,7 @@ import { Client } from "./Client.js";
 
 const resp = await fetch("https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/summoner-icons.json");
 // ProgressBarr.increment()
-const data: RiotIconEntry[] = await resp.json();
+const data: RawRiotIconEntry[] = await resp.json();
 // ProgressBarr.increment()
 
 const list: Record<string, number> = {};

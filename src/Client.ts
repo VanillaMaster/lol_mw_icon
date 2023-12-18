@@ -103,7 +103,10 @@ namespace API {
             } & ({
                 result: "Success"
             } | {
-
+                result: "Warning",
+                warnings: {
+                    [warning: string]: any
+                }
             })
         } 
     }
@@ -255,7 +258,7 @@ export class Client {
     //     return data;
     // }
 
-    async uploadFile(file: ArrayBuffer, name: string, { content, forced = false }: { content?: string, forced?: boolean } = {}){
+    async uploadFile(file: ArrayBuffer, name: string, content?: string, forced?: boolean){
         const form = new FormData();
         form.append("action", "upload");
         form.append("filename", name);
@@ -268,6 +271,39 @@ export class Client {
         form.append("formatversion", "2");
         
         form.append("file", new Blob([file]))
+        
+        let data: API.Upload.Response | API.Error.Response;
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            if (this.CSRF == null) {
+                this.CSRF = await this.getCSRFToken();
+            }
+            form.append("token", this.CSRF);
+    
+            const body = await this.call("medium", this.root, {
+                dispatcher: this.agent,
+                method: "POST",
+                body: form
+            });
+    
+            data = await body.json();
+            if (!("error" in data && data.error.code == "badtoken")) return data;
+        }
+        return data!;
+    }
+
+    async uploadFileFromURL(url: string, name: string, content?: string) {
+        const form = new FormData();
+        form.append("action", "upload");
+        form.append("filename", name);
+        form.append("comment", "automatic upload")
+        
+        if (content) form.append("text", content);
+        // if (forced) form.append("ignorewarnings", "1");
+        
+        form.append("format", "json");
+        form.append("formatversion", "2");
+        
+        form.append("url", url)
         
         let data: API.Upload.Response | API.Error.Response;
         for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -382,28 +418,35 @@ export class Client {
     //     return data;
     // }
 
-    // async updatePage(token: string, title: string, content: string){
-    //     const form = new FormData();
-    //     form.append("action", "edit");
-    //     form.append("token", token)
-    //     form.append("title", title)
-    //     form.append("text", content);
+    async updatePage(title: string, content: string) {
+        const form = new FormData();
+        form.append("action", "edit");
+        form.append("title", title)
+        form.append("text", content);
+        
+        form.append("bot", "1");
+        form.append("format", "json");
 
-    //     form.append("bot", "1");
-    //     form.append("format", "json");
+        form.append("nocreate", "1")
 
-    //     form.append("nocreate", "1")
+        let data: API.Edit.Response | API.Error.Response;
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            if (this.CSRF == null) {
+                this.CSRF = await this.getCSRFToken();
+            }
+            form.append("token", this.CSRF)
 
-    //     const body = await fetch(this.root, {
-    //         dispatcher: this.agent,
-    //         method: "POST",
-    //         body: form
-    //     });
+            const body = await this.call("medium", this.root, {
+                dispatcher: this.agent,
+                method: "POST",
+                body: form
+            });
 
-    //     const data = await body.json();
-
-    //     return data;
-    // }
+            data = await body.json();
+            if (!("error" in data && data.error.code == "badtoken")) return data;
+        }
+        return data!;
+    }
 
     async updateOrCreatePage(title: string, content: string) {
         const form = new FormData();
