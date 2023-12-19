@@ -8,7 +8,7 @@
     "build": "tsc --build",
     "watch": "tsc --build --watch",
     "icon-data": "node ./dist/icons/v3.js",
-    "index-data": "node ./dist/indexes.js"
+    "index-data": "node ./dist/indexes/v2.js"
   },
   "keywords": [],
   "author": "",

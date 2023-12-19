@@ -1,62 +1,94 @@
-/// <reference types="../lib/mw.d.ts" />
+/// <reference types="../../lib/mw.d.ts" />
 
 import { CookieJar } from 'tough-cookie';
 import { CookieAgent } from 'http-cookie-agent/undici';
 
-const MAX_ATTEMPTS = 2;
+const MAX_ATTEMPTS = 1;
 
-type priority = "high" | "medium" | "low";
+/**@typedef { "high" | "medium" | "low" } priority */
 
 export class Client {
-    constructor(path: string){
+    /**
+     * @param { string } path 
+     */
+    constructor(path){
         this.root = new URL(path);
 
         this.processQueue = this.processQueue.bind(this);
     }
-    private root;
+    /**@private */
+    root;
+    /**@private */
+    agent = new CookieAgent({ cookies: { jar: new CookieJar() } });
 
-    private agent = new CookieAgent({ cookies: { jar: new CookieJar() } });
+    /**
+     * @private
+     * @type { string | null }
+     */
+    CSRF = null;
 
-    private CSRF: string | null = null;
-
-    private queues: Record<priority, {
-        input: URL | RequestInfo;
-        init?: RequestInit;
-        resolve: (value: Response | PromiseLike<Response>) => void
-        reject: (reason?: any) => void
-    }[]> = {
+    /**
+     * @typedef queueItem
+     * @property { URL | RequestInfo } input
+     * @property { RequestInit } [init]
+     * @property { (value: Response | PromiseLike<Response>) => void } resolve
+     * @property { (reason?: any) => void } reject
+     * 
+     * @private
+     * @type { Record<priority, queueItem[]> }
+     */
+    queues = {
         high: [],
         medium: [],
         low: []
     };
-    private static readonly queues: priority[] = ['high', 'medium', 'low'];
 
-    private id: string | number | NodeJS.Timeout | null = null;
+    /**
+     * @private
+     * @readonly
+     * @type { priority[] }
+     */
+    static queues = ['high', 'medium', 'low'];
 
-    private processQueue(){
+    /**
+     * @private
+     * @type { string | number | NodeJS.Timeout | null }
+     */
+    id = null;
+
+    /**@private */
+    processQueue(){
         for (const priority of Client.queues) {
             const item = this.queues[priority].shift();
             if (item == undefined) continue;
             fetch(item.input, item.init).then(item.resolve).catch(item.reject);
-            // if (Client.queues.reduce((accum, priority) => accum + this.queues[priority].length, 0) > 0) {
-            //     this.id = setTimeout(this.processQueue, 60_000 / 19);
-            // } else {
-            //     this.id = null;
-            // }
             this.id = setTimeout(this.processQueue, 60_000 / 39);
             return;
         }
         this.id = null;
     }
 
-    private call(priority: priority, input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response> {
+    /**
+     * @private
+     * @param { priority } priority 
+     * @param { URL | RequestInfo } input 
+     * @param { RequestInit } [init] 
+     * @returns { Promise<Response> }
+     */
+    call(priority, input, init) {
         return new Promise((resolve, reject) => {
             this.queues[priority].push({ input, init, resolve, reject });
             if (this.id == null) this.processQueue();
         })
     }
 
-    async logIn(user: string, password: string) {
+    /**
+     * 
+     * @param { string } user 
+     * @param { string } password 
+     * @returns 
+     */
+    async logIn(user, password) {
         const url = new URL(this.root);
         url.searchParams.append("action", "query");
         url.searchParams.append("meta", "tokens");
@@ -69,7 +101,8 @@ export class Client {
             method: "GET",
         });
 
-        const tokendata: API.Query.Tokens.Login.Response = await tokenbody.json();
+        /**@type { API.Query.Tokens.Login.Response } */
+        const tokendata = await tokenbody.json();
         const token = tokendata.query.tokens.logintoken;
 
         const form = new FormData();
@@ -85,8 +118,8 @@ export class Client {
             method: "POST",
             body: form
         })
-
-        const data: API.Login.Response | API.Error.Response = await loginbody.json();
+        /**@type { API.Login.Response | API.Error.Response } */
+        const data = await loginbody.json();
 
         return data;
     }
@@ -104,8 +137,8 @@ export class Client {
             dispatcher: this.agent,
             method: "GET",
         });
-
-        const data: API.Query.Tokens.Csrf.Response | API.Error.Response = await body.json();
+        /**@type { API.Query.Tokens.Csrf.Response | API.Error.Response } */
+        const data = await body.json();
         if ("error" in data) {
             throw new Error(JSON.stringify(data.error));
         }
@@ -114,7 +147,14 @@ export class Client {
         return token;
     }
 
-    async uploadFile(file: ArrayBuffer, name: string, content?: string, forced?: boolean){
+    /**
+     * @param { ArrayBuffer } file 
+     * @param { string } name 
+     * @param { string } [content] 
+     * @param { boolean } [forced] 
+     * @returns 
+     */
+    async uploadFile(file, name, content, forced){
         const form = new FormData();
         form.append("action", "upload");
         form.append("filename", name);
@@ -127,9 +167,10 @@ export class Client {
         form.append("formatversion", "2");
         
         form.append("file", new Blob([file]))
-        
-        let data: API.Upload.Response | API.Error.Response;
-        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        /**@type { API.Upload.Response | API.Error.Response } */
+        let data;
+        let attempt = MAX_ATTEMPTS;
+        do {
             if (this.CSRF == null) {
                 this.CSRF = await this.getCSRFToken();
             }
@@ -143,11 +184,17 @@ export class Client {
     
             data = await body.json();
             if (!("error" in data && data.error.code == "badtoken")) return data;
-        }
-        return data!;
+            this.CSRF = null;
+        } while (attempt-- > 0);
+        
+        return data;
     }
 
-    async getImageInfo(titles: string[]){
+    /**
+     * @param { string[] } titles 
+     * @returns 
+     */
+    async getImageInfo(titles){
         const url = new URL(this.root);
         url.searchParams.append("action", "query");
         url.searchParams.append("prop", "imageinfo");
@@ -165,12 +212,18 @@ export class Client {
             method: "GET",
         });
 
-        const data: API.Query.Imageinfo.Response | API.Error.Response = await body.json();
+        /**@type { API.Query.Imageinfo.Response | API.Error.Response } */
+        const data = await body.json();
 
         return data;
     }
 
-    async updatePage(title: string, content: string) {
+    /**
+     * @param { string } title 
+     * @param { string } content 
+     * @returns 
+     */
+    async updatePage(title, content) {
         const form = new FormData();
         form.append("action", "edit");
         form.append("title", title)
@@ -180,9 +233,10 @@ export class Client {
         form.append("format", "json");
 
         form.append("nocreate", "1")
-
-        let data: API.Edit.Response | API.Error.Response;
-        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        /**@type { API.Edit.Response | API.Error.Response } */
+        let data;
+        let attempt = MAX_ATTEMPTS;
+        do {
             if (this.CSRF == null) {
                 this.CSRF = await this.getCSRFToken();
             }
@@ -196,11 +250,18 @@ export class Client {
 
             data = await body.json();
             if (!("error" in data && data.error.code == "badtoken")) return data;
-        }
-        return data!;
+            this.CSRF = null;
+        } while (attempt-- > 0);
+        
+        return data;
     }
 
-    async updateOrCreatePage(title: string, content: string) {
+    /**
+     * @param { string } title 
+     * @param { string } content 
+     * @returns 
+     */
+    async updateOrCreatePage(title, content) {
         const form = new FormData();
         form.append("action", "edit");
         form.append("title", title)
@@ -208,9 +269,10 @@ export class Client {
         
         form.append("bot", "1");
         form.append("format", "json");
-
-        let data: API.Edit.Response | API.Error.Response;
-        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        /**@type { API.Edit.Response | API.Error.Response } */
+        let data;
+        let attempt = MAX_ATTEMPTS;
+        do {
             if (this.CSRF == null) {
                 this.CSRF = await this.getCSRFToken();
             }
@@ -224,8 +286,10 @@ export class Client {
 
             data = await body.json();
             if (!("error" in data && data.error.code == "badtoken")) return data;
-        }
-        return data!;
+            this.CSRF = null;
+        } while (attempt-- > 0);
+
+        return data;
     }
 
 }

@@ -8,7 +8,7 @@ import colors from "ansi-colors";
 
 import { logger } from "../logger.js";
 import { deepEqual } from "../utils/deepEqual.js";
-import { Client } from "../Client.js";
+import { Client } from "../client/v1.js";
 
 const IMAGE_TEMPLATE = await readFile("./image_template.txt", "utf-8");
 
@@ -43,7 +43,7 @@ const imageQueue = new Map<number, { mime: string, sha1: string, body: ArrayBuff
 
 
 
-const client = new Client(`https://${process.env.realm!}.fandom.com/api.php`);
+const client = new Client(`https://${process.env.realm}.fandom.com/api.php`);
 {
     const data = await client.logIn(process.env.user!, process.env.password!);
     if ("error" in data) throw new Error(JSON.stringify(data.error));
@@ -254,22 +254,23 @@ async function getSetsData() {
 
 async function getIcon(id: number): Promise<{ mime: string, sha1: string, body: ArrayBuffer }> {
     const resp = await fetch(`https://cdn.communitydragon.org/latest/profile-icon/${id}`);
+    if (resp.ok !== true) throw new Error(resp.statusText, { cause: "cdn.communitydragon.org" });
+    const mime = resp.headers.get("Content-Type")!;
+    // if (!(mime in MIME_TO_EXT)) 
     const body = await resp.arrayBuffer()
-    return {
-        sha1: createHash("sha1").update(new Uint8Array(body)).digest("hex"),
-        mime: resp.headers.get("Content-Type")!,
-        body: body
-    }
+    const sha1 = createHash("sha1").update(new Uint8Array(body)).digest("hex");
+
+    return { body, mime, sha1 }
 }
 
 async function getCurentIconData(id: number): Promise<RawRiotIconEntry | null> {
     const controller = new AbortController();
-    const resp = await fetch(`https://leagueoflegends.fandom.com/wiki/Module:Profile-Icons/V1/icon/${id}.json?action=raw`, { signal: controller.signal });
+    const resp = await fetch(`https://${process.env.realm}.fandom.com/wiki/Module:Profile-Icons/V1/icon/${id}.json?action=raw`, { signal: controller.signal });
     if (resp.status == 404) {
         controller.abort();
         return null;
     }
-    if (!resp.ok) throw new Error(resp.statusText);
+    if (!resp.ok) throw new Error(resp.statusText, { cause: `${process.env.realm}.fandom.com` });
     return await resp.json();
 }
 

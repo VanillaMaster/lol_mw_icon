@@ -8,6 +8,7 @@
         "noImplicitAny": true,
         "paths": {},
         "checkJs": true,
+        "allowJs": true,
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
         // "rootDir": "."
