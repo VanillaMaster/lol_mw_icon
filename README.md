@@ -2,7 +2,7 @@
 script to upload lol icons to mw
 
 > [!WARNING]
-> everything is outdated
+> everything in readme is outdated
 
 ## Build
 install dependencies
