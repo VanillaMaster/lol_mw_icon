@@ -1,6 +1,9 @@
 # lol_mw_icon
 script to upload lol icons to mw
 
+[!WARNING]
+everything is outdated
+
 ## Build
 install dependencies
 ```
