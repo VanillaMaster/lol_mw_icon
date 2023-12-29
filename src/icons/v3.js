@@ -57,6 +57,7 @@ const dataUpdateBar = progressBar.create(iconsData.length, 0, dataUpdateBarState
 });
 
 const setsData = await getSetsData();
+
 /**@type { Map<number, { mime: string, sha1: string, body: ArrayBuffer }> } */
 const imageQueue = new Map();
 
@@ -362,20 +363,6 @@ function processRawIconEntry(raw, mime) {
 }
 
 {
-    const chunkMaxSize = 3;
-    /**@type { RawRiotIconEntry[] } */
-    const chunk = [];
-    for (const entry of iconsData) {
-        chunk.push(entry)
-        if (chunk.length >= chunkMaxSize) {
-            await Promise.all(chunk.map(processIconEntry));
-            chunk.length = 0;
-        }
-    }
-    await Promise.all(chunk.map(processIconEntry));
-    await checkImages(imageQueue);
-}
-{
         /**@type { Promise<number>[] } */
     const bucket = [];
     const iter = iconsData[Symbol.iterator]();
@@ -387,5 +374,7 @@ function processRawIconEntry(raw, mime) {
         const i = await Promise.race(bucket);
         bucket[i] = __await(processIconEntry(entry), i);
     }
+    await Promise.all(bucket);
+    await checkImages(imageQueue);
 }
 progressBar.stop();
