@@ -1,15 +1,27 @@
-type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
+/**
+ * @typedef { { readonly [key: string]: Json } } JsonObject
+ * @typedef { Json[] } JsonArray
+ * @typedef { string | number | boolean | null | JsonArray | JsonObject } Json
+ */
+/**
+ * @template { Record<PropertyKey, any> } T
+ * @typedef { T[keyof T] } Keys
+ */
+/**@enum { Keys<typeof JSON_TYPE> } */
+const JSON_TYPE = /**@type {const} */ ({
+    string: "string",
+    number: "number",
+    object: "object",
+    array: "array",
+    boolean: "boolean",
+    null: "null"
+});
 
-enum JSON_TYPE {
-    string,
-    number,
-    object,
-    array,
-    boolean,
-    null
-}
-
-function getType(value: Json): JSON_TYPE {
+/**
+ * @param { Json } value 
+ * @returns { JSON_TYPE }
+ */
+function getType(value) {
     switch (typeof value) {
         case "string":
             return JSON_TYPE.string;
@@ -26,7 +38,12 @@ function getType(value: Json): JSON_TYPE {
     }
 }
 
-function deepEqualObjects(actual: { [key: string]: Json }, expected: { [key: string]: Json }): boolean {
+/**
+ * @param { JsonObject } actual 
+ * @param { JsonObject } expected 
+ * @returns { boolean }
+ */
+function deepEqualObjects(actual, expected) {
     const l = Object.keys(expected).length;
     let i = 0;
     for (const key in actual) {
@@ -37,7 +54,12 @@ function deepEqualObjects(actual: { [key: string]: Json }, expected: { [key: str
     return i == l;
 }
 
-function deepEqualArray(actual: Json[], expected: Json[]): boolean {
+/**
+ * @param { JsonArray } actual 
+ * @param { JsonArray } expected 
+ * @returns { boolean }
+ */
+function deepEqualArray(actual, expected) {
     if (actual.length !== expected.length) return false;
     for (let i = 0; i < actual.length; i++) {
         if (!deepEqual(actual[i], expected[i])) return false;
@@ -45,7 +67,12 @@ function deepEqualArray(actual: Json[], expected: Json[]): boolean {
     return true;
 }
 
-function deepEqual(actual: Json, expected: Json): boolean {
+/**
+ * @param { Json } actual 
+ * @param { Json } expected 
+ * @returns { boolean }
+ */
+export function deepEqual(actual, expected) {
     const type = getType(actual);
     if (type !== getType(expected)) return false;
     switch (type) {
@@ -55,16 +82,10 @@ function deepEqual(actual: Json, expected: Json): boolean {
         case JSON_TYPE.null:
             return actual === expected;
         case JSON_TYPE.object:
-            return deepEqualObjects(actual as { [key: string]: Json }, expected as { [key: string]: Json })
+            return deepEqualObjects(/**@type { JsonObject }*/(actual), /**@type { JsonObject }*/(expected))
         case JSON_TYPE.array:
-            return deepEqualArray(actual as Json[], expected as Json[]);
+            return deepEqualArray(/**@type { JsonArray }*/(actual), /**@type { JsonArray }*/(expected));
         default: throw new TypeError("unexpected type");
     }
 
-}
-
-const wrap = deepEqual as (actual: unknown, expected: unknown) => boolean;
-
-export {
-    wrap as deepEqual
 }

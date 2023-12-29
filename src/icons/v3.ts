@@ -10,6 +10,9 @@ import { logger } from "../logger.js";
 import { deepEqual } from "../utils/deepEqual.js";
 import { Client } from "../client/v1.js";
 
+function __throw(err: any): never { throw err; }
+
+
 const IMAGE_TEMPLATE = await readFile("./image_template.txt", "utf-8");
 
 const MIME_TO_EXT: Record<string, string> = {
@@ -45,7 +48,10 @@ const imageQueue = new Map<number, { mime: string, sha1: string, body: ArrayBuff
 
 const client = new Client(`https://${process.env.realm}.fandom.com/api.php`);
 {
-    const data = await client.logIn(process.env.user!, process.env.password!);
+    const data = await client.logIn(
+        process.env.user ?? __throw(new ReferenceError("'user' env variable is not defined")),
+        process.env.password ?? __throw(new ReferenceError("'password' env variable is not defined"))
+    );
     if ("error" in data) throw new Error(JSON.stringify(data.error));
     if (data.login.result != "Success") throw new Error(data.login.reason)
 }

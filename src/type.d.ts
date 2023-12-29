@@ -2,7 +2,7 @@ interface RequestInit {
     dispatcher?: import("undici").Dispatcher
 }
 
-interface RawRiotIconEntry {
+type RawRiotIconEntry = {
     id: number;
     title: string;
     yearReleased: number;
@@ -22,7 +22,7 @@ interface RawRiotIconEntry {
     esportsEvent?: string;
 }
 
-interface RiotIconEntry {
+type RiotIconEntry = {
     id: number;
     title: string;
     yearReleased: number;

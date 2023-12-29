@@ -4,7 +4,8 @@ import { Client } from "../client/v1.js";
 
 const iconsData = (await getIconsData()).filter(({imagePath}) => imagePath !== undefined);
 
-const index: Record<number, string[]> = {}
+/**@type { Record<number, string[]> } */
+const index = {}
 const progressBar = new cliProgress.SingleBar({
     format: "[{bar}] {percentage}% | {value}/{total} | concurrency: {concurrency}/{maxconcurrency}"
 }, cliProgress.Presets.shades_classic);
@@ -15,7 +16,8 @@ const state = {
 progressBar.start(iconsData.length, 0, state);
 
 {
-    const bucket: Promise<number>[] = [];
+    /**@type { Promise<number>[] } */
+    const bucket = [];
     const iter = iconsData[Symbol.iterator]();
     const bucketSize = 10;
     {
@@ -34,25 +36,49 @@ progressBar.start(iconsData.length, 0, state);
     await Promise.all(bucket);
 }
 
-async function sleep(timeout: number): Promise<void> {
+/**
+ * @param { any } err
+ * @returns { never } 
+ */
+function __throw(err){ throw err; }
+
+/**
+ * @param { number } timeout 
+ * @returns { Promise<void> }
+ */
+async function sleep(timeout) {
     return new Promise(function(resolve){ setTimeout(resolve, timeout) });
 }
 
-async function getIconsData(): Promise<RawRiotIconEntry[]> {
+/**
+ * @returns { Promise<RawRiotIconEntry[]> }
+ */
+async function getIconsData() {
     const resp = await fetch("https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/summoner-icons.json");
     const data = await resp.json();
     return data;
 }
 
-async function processIconEntry(i: number, entry: RawRiotIconEntry) {
+/**
+ * @param { number } i 
+ * @param { RawRiotIconEntry } entry 
+ * @returns { Promise<number> }
+ */
+async function processIconEntry(i, entry) {
     const mime = await getIcon(entry.id);
     progressBar.increment(1);
     (index[entry.id] ?? (index[entry.id] = [])).push(mime);
     return i;
 }
 
-async function getIcon(id: number, depth = 0): Promise<string> {
-    let resp: Response;
+/**
+ * @param { number } id 
+ * @param { number } [depth] 
+ * @returns { Promise<string> }
+ */
+async function getIcon(id, depth = 0) {
+    /**@type { Response } */
+    let resp;
     try {
         resp = await fetch(`https://cdn.communitydragon.org/latest/profile-icon/${id}`, {
             method: "HEAD"
@@ -79,7 +105,7 @@ async function getIcon(id: number, depth = 0): Promise<string> {
         state.concurrency++
         return getIcon(id, depth)
     }
-    const mime = resp.headers.get("Content-Type")!;
+    const mime = resp.headers.get("Content-Type") ?? __throw(new Error("Unreachable"));
     return mime
 }
 progressBar.stop();
@@ -87,7 +113,10 @@ progressBar.stop();
 {
     const client = new Client(`https://${process.env.realm}.fandom.com/api.php`);
     {
-        const data = await client.logIn(process.env.user!, process.env.password!);
+        const data = await client.logIn(
+            process.env.user ?? __throw(new ReferenceError("'user' env variable is not defined")),
+            process.env.password ?? __throw(new ReferenceError("'password' env variable is not defined"))
+        );
         if ("error" in data) throw new Error(JSON.stringify(data.error));
         if (data.login.result != "Success") throw new Error(data.login.reason)
     }
