@@ -20,18 +20,14 @@ progressBar.start(iconsData.length, 0, state);
     const bucket = [];
     const iter = iconsData[Symbol.iterator]();
     const bucketSize = 10;
-    {
-        let i = 0;
-        for (const entry of iter) {
-            state.concurrency++
-            state.maxconcurrency++;
-            bucket.push(processIconEntry(i++, entry));
-            if (i >= bucketSize) break;        
-        }
+    for (const entry of iter) {
+        state.concurrency++
+        state.maxconcurrency++;
+        if (bucket.push(__await(processIconEntry(entry), bucket.length)) >= bucketSize) break;   
     }
     for (const entry of iter) {
         const i = await Promise.race(bucket);
-        bucket[i] = processIconEntry(i, entry);
+        bucket[i] = __await(processIconEntry(entry), i);
     }
     await Promise.all(bucket);
 }
@@ -41,6 +37,17 @@ progressBar.start(iconsData.length, 0, state);
  * @returns { never } 
  */
 function __throw(err){ throw err; }
+
+/**
+ * @template T
+ * @param { Promise<any> } promise 
+ * @param { T } value 
+ * @returns { Promise<T> }
+ */
+async function __await(promise, value) {
+    await promise;
+    return value;
+}
 
 /**
  * @param { number } timeout 
@@ -60,15 +67,12 @@ async function getIconsData() {
 }
 
 /**
- * @param { number } i 
  * @param { RawRiotIconEntry } entry 
- * @returns { Promise<number> }
  */
-async function processIconEntry(i, entry) {
+async function processIconEntry(entry) {
     const mime = await getIcon(entry.id);
     progressBar.increment(1);
-    (index[entry.id] ?? (index[entry.id] = [])).push(mime);
-    return i;
+    (index[entry.id] ??= []).push(mime);
 }
 
 /**

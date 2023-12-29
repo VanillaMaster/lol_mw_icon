@@ -10,12 +10,27 @@ import { logger } from "../logger.js";
 import { deepEqual } from "../utils/deepEqual.js";
 import { Client } from "../client/v1.js";
 
-function __throw(err: any): never { throw err; }
+/**
+ * @param { any } err
+ * @returns { never } 
+ */
+function __throw(err){ throw err; }
 
+/**
+ * @template T
+ * @param { Promise<any> } promise 
+ * @param { T } value 
+ * @returns { Promise<T> }
+ */
+async function __await(promise, value) {
+    await promise;
+    return value;
+}
 
 const IMAGE_TEMPLATE = await readFile("./image_template.txt", "utf-8");
 
-const MIME_TO_EXT: Record<string, string> = {
+/**@type { Record<string, string> } */
+const MIME_TO_EXT = {
     "image/jpeg": "jpeg"
 }
 
@@ -42,7 +57,8 @@ const dataUpdateBar = progressBar.create(iconsData.length, 0, dataUpdateBarState
 });
 
 const setsData = await getSetsData();
-const imageQueue = new Map<number, { mime: string, sha1: string, body: ArrayBuffer }>();
+/**@type { Map<number, { mime: string, sha1: string, body: ArrayBuffer }> } */
+const imageQueue = new Map();
 
 
 
@@ -56,7 +72,10 @@ const client = new Client(`https://${process.env.realm}.fandom.com/api.php`);
     if (data.login.result != "Success") throw new Error(data.login.reason)
 }
 
-async function processIconEntry(entry: RawRiotIconEntry) {
+/**
+ * @param { RawRiotIconEntry } entry 
+ */
+async function processIconEntry(entry) {
     const [
         current, icon
     ] = await Promise.all([
@@ -90,15 +109,20 @@ async function processIconEntry(entry: RawRiotIconEntry) {
     }
 }
 
-async function checkImages(queue: Map<number, { mime: string, sha1: string, body: ArrayBuffer, filename?: string }>) {
+/**
+ * 
+ * @param { Map<number, { mime: string, sha1: string, body: ArrayBuffer, filename?: string }> } queue 
+ */
+async function checkImages(queue) {
     let max = 50;
-    const slice = new Map<number, { mime: string, sha1: string, body: ArrayBuffer, filename: string }>
+    /**@type { Map<number, { mime: string, sha1: string, body: ArrayBuffer, filename: string }> } */
+    const slice = new Map()
     for (const [id, entry] of queue) {
         if (max-- <= 0) break;
         if (!(entry.mime in MIME_TO_EXT)) throw new Error(`unexpected mime (${entry.mime})`);
         const ext = MIME_TO_EXT[entry.mime];
         entry.filename = `Profile-Icons-V1-${id}.${ext}`;
-        slice.set(id, entry as any);
+        slice.set(id, /**@type { any }*/(entry));
     }
     for (const id of slice.keys()) queue.delete(id);
 
@@ -110,7 +134,7 @@ async function checkImages(queue: Map<number, { mime: string, sha1: string, body
     const integrity = data.query.pages.reduce(function(accum, value){
         if (!value.missing) accum.set(value.title.substring(/* "File:".length */ 5 ), value.imageinfo[0].sha1);
         return accum;
-    }, new Map<string, string>());
+    }, /**@type { Map<string, string> }*/(new Map()));
     
     for (const [id, { filename, body, sha1: newIntegrity}] of slice) {
         const oldIntegrity = integrity.get(filename);
@@ -167,29 +191,41 @@ async function checkImages(queue: Map<number, { mime: string, sha1: string, body
     }
 }
 
-async function uploadImage(file: ArrayBuffer, name: string, content?: string, forced?: boolean){
+/**
+ * @param { ArrayBuffer } file 
+ * @param { string } name 
+ * @param { string } [content] 
+ * @param { boolean } [forced] 
+ */
+async function uploadImage(file, name, content, forced){
     let attemptsLimit = 2;
-    let resp!: Awaited<ReturnType<Client["uploadFile"]>>;
-    while (attemptsLimit-- > 0) {
+    /**@type { Awaited<ReturnType<Client["uploadFile"]>> } */
+    let resp;
+    do {
         resp = await client.uploadFile(file, name, content, forced);
         if (!("error" in resp) || resp.error.code !== "readonly") break;
         logger.log(resp.error.readonlyreason);
         await sleep(1000 * 60 * 2);
-    }
+    } while (attemptsLimit-- > 0);
     return resp
 }
 
-async function uploadData(data: RiotIconEntry, entry: RawRiotIconEntry) {
+/**
+ * @param { RiotIconEntry } data 
+ * @param { RawRiotIconEntry } entry 
+ */
+async function uploadData(data, entry) {
     let attemptsLimit = 2;
     const name = `Module:Profile-Icons/V1/icon/${entry.id}.json`
     const text = JSON.stringify(data);
-    let resp!: Awaited<ReturnType<Client["updateOrCreatePage"]>>;
-    while (attemptsLimit-- > 0) {
+    /**@type { Awaited<ReturnType<Client["updateOrCreatePage"]>> } */
+    let resp;
+    do {
         resp = await client.updateOrCreatePage(name, text);
         if (!("error" in resp) || resp.error.code !== "readonly") break;
         logger.log(resp.error.readonlyreason);
         await sleep(1000 * 60 * 2);
-    }
+    } while (attemptsLimit-- > 0);
     if ("error" in resp) {
         debugger
         throw new Error(JSON.stringify(resp.error));
@@ -204,18 +240,23 @@ async function uploadData(data: RiotIconEntry, entry: RawRiotIconEntry) {
     logger.log(`data ${entry.id} new`);
 }
 
-async function updateData(data: RiotIconEntry, entry: RawRiotIconEntry) {
+/**
+ * @param { RiotIconEntry } data 
+ * @param { RawRiotIconEntry } entry 
+ */
+async function updateData(data, entry) {
     let attemptsLimit = 2;
     
     const name = `Module:Profile-Icons/V1/icon/${entry.id}.json`
     const text = JSON.stringify(data);
-    let resp!: Awaited<ReturnType<Client["updatePage"]>>;
-    while (attemptsLimit-- > 0) {
+    /**@type { Awaited<ReturnType<Client["updatePage"]>> } */
+    let resp;
+    do {
         resp = await client.updatePage(name, text);
         if (!("error" in resp) || resp.error.code !== "readonly") break;
         logger.log(resp.error.readonlyreason);
         await sleep(1000 * 60 * 2);
-    }
+    } while (attemptsLimit-- > 0);
     if ("error" in resp) {
         debugger
         throw new Error(JSON.stringify(resp.error));
@@ -230,11 +271,18 @@ async function updateData(data: RiotIconEntry, entry: RawRiotIconEntry) {
     logger.log(`data ${entry.id} update`);
 }
 
-function sleep(ms: number) {
-    return new Promise<void>(function (resolve){ setTimeout(resolve, ms) });
+/**
+ * @param { number } ms 
+ * @returns { Promise<void> }
+ */
+function sleep(ms) {
+    return new Promise(function (resolve){ setTimeout(resolve, ms) });
 }
 
-async function getIconsData(): Promise<RawRiotIconEntry[]> {
+/**
+ * @returns { Promise<RawRiotIconEntry[]> }
+ */
+async function getIconsData() {
     const resp = await fetch("https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/summoner-icons.json");
     const data = await resp.json();
     return data;
@@ -242,8 +290,10 @@ async function getIconsData(): Promise<RawRiotIconEntry[]> {
 
 async function getSetsData() {
     const resp = await fetch("https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/summoner-icon-sets.json");
-    const data: { displayName: string; icons: number[]; }[] = await resp.json();
-    const binding = new Map<number, string[]>();
+    /**@type { { displayName: string; icons: number[]; }[] } */
+    const data = await resp.json();
+    /**@type { Map<number, string[]> } */
+    const binding = new Map();
 
     for (const { displayName, icons } of data) {
         for (const id of icons) {
@@ -258,10 +308,14 @@ async function getSetsData() {
     return binding;
 }
 
-async function getIcon(id: number): Promise<{ mime: string, sha1: string, body: ArrayBuffer }> {
+/**
+ * @param { number } id 
+ * @returns { Promise<{ mime: string, sha1: string, body: ArrayBuffer }> }
+ */
+async function getIcon(id) {
     const resp = await fetch(`https://cdn.communitydragon.org/latest/profile-icon/${id}`);
     if (resp.ok !== true) throw new Error(resp.statusText, { cause: "cdn.communitydragon.org" });
-    const mime = resp.headers.get("Content-Type")!;
+    const mime = resp.headers.get("Content-Type") ?? __throw(new Error("Unreachable"));
     // if (!(mime in MIME_TO_EXT)) 
     const body = await resp.arrayBuffer()
     const sha1 = createHash("sha1").update(new Uint8Array(body)).digest("hex");
@@ -269,7 +323,11 @@ async function getIcon(id: number): Promise<{ mime: string, sha1: string, body: 
     return { body, mime, sha1 }
 }
 
-async function getCurentIconData(id: number): Promise<RawRiotIconEntry | null> {
+/**
+ * @param { number } id 
+ * @returns { Promise<RawRiotIconEntry | null> }
+ */
+async function getCurentIconData(id) {
     const controller = new AbortController();
     const resp = await fetch(`https://${process.env.realm}.fandom.com/wiki/Module:Profile-Icons/V1/icon/${id}.json?action=raw`, { signal: controller.signal });
     if (resp.status == 404) {
@@ -280,26 +338,33 @@ async function getCurentIconData(id: number): Promise<RawRiotIconEntry | null> {
     return await resp.json();
 }
 
-function processRawIconEntry(raw: RawRiotIconEntry, mime: string): RiotIconEntry {
+/**
+ * 
+ * @param { RawRiotIconEntry } raw 
+ * @param { string } mime 
+ * @returns { RiotIconEntry }
+ */
+function processRawIconEntry(raw, mime) {
     const { imagePath, descriptions, rarities, ...data } = raw;
 
     return Object.assign(data, {
         sets: setsData.get(data.id) ?? [],
         image: { mime: mime },
-        descriptions: descriptions.reduce(function(accum: RiotIconEntry["descriptions"], { region: key, ...value }) {
+        descriptions: descriptions.reduce(function(accum, { region: key, ...value }) {
             accum[key] = value;
             return accum
-        }, {}),
-        rarities: rarities.reduce(function(accum: RiotIconEntry["rarities"], { region: key, ...value }) {
+        }, /**@type { RiotIconEntry["descriptions"] }*/({})),
+        rarities: rarities.reduce(function(accum, { region: key, ...value }) {
             accum[key] = value;
             return accum
-        }, {})
+        }, /**@type { RiotIconEntry["rarities"] }*/({}))
     });
 }
 
 {
     const chunkMaxSize = 3;
-    const chunk: any[] = [];
+    /**@type { RawRiotIconEntry[] } */
+    const chunk = [];
     for (const entry of iconsData) {
         chunk.push(entry)
         if (chunk.length >= chunkMaxSize) {
@@ -309,5 +374,18 @@ function processRawIconEntry(raw: RawRiotIconEntry, mime: string): RiotIconEntry
     }
     await Promise.all(chunk.map(processIconEntry));
     await checkImages(imageQueue);
+}
+{
+        /**@type { Promise<number>[] } */
+    const bucket = [];
+    const iter = iconsData[Symbol.iterator]();
+    const bucketSize = 3;
+    for (const entry of iter) {
+        if (bucket.push(__await(processIconEntry(entry), bucket.length)) >= bucketSize) break;   
+    }
+    for (const entry of iter) {
+        const i = await Promise.race(bucket);
+        bucket[i] = __await(processIconEntry(entry), i);
+    }
 }
 progressBar.stop();

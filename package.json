@@ -7,9 +7,9 @@
   "scripts": {
     "build": "tsc --build",
     "watch": "tsc --build --watch",
-    "icon-data": "node ./dist/icons/v3.js",
-    "index": "node ./dist/indexes/v2.js",
-    "index:title": "node ./dist/indexes/title.js"
+    "icon-data": "node ./src/icons/v3.js",
+    "index": "node ./src/indexes/v2.js",
+    "index:title": "node ./src/indexes/title.js"
   },
   "keywords": [],
   "author": "",
@@ -25,7 +25,6 @@
   "devDependencies": {
     "@types/cli-progress": "^3.11.4",
     "@types/node": "^20.8.9",
-    "@types/tough-cookie": "^4.0.4",
-    "typescript": "^5.2.2"
+    "@types/tough-cookie": "^4.0.4"
   }
 }
