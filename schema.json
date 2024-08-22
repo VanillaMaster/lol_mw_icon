@@ -1,0 +1,118 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+        "icon-data": {
+            "properties": {
+                "id": {
+                    "type": "number"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "yearReleased": {
+                    "type": "number"
+                },
+                "isLegacy": {
+                    "type": "boolean"
+                },
+                "descriptions": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                            "description": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "description"
+                        ]
+                    },
+                    "minProperties": 1
+                },
+                "rarities": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                            "rarity": {
+                                "type": "number"
+                            }
+                        },
+                        "required": [
+                            "rarity"
+                        ]
+                    },
+                    "minProperties": 1
+                },
+                "disabledRegions": {
+                    "type": "array"
+                },
+                "esportsTeam": {
+                    "type": "string"
+                },
+                "esportsRegion": {
+                    "type": "string"
+                },
+                "esportsEvent": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "properties": {
+        "data": {
+            "description": "This field is auto-updated and should not edited by hand",
+            "$ref": "#/definitions/icon-data",
+            "required": [
+                "id",
+                "title",
+                "yearReleased",
+                "isLegacy",
+                "descriptions",
+                "rarities",
+                "disabledRegions"
+            ]
+        },
+        "override": {
+            "description": "Properties defined in this field will override ones from \"data\"",
+            "$ref": "#/definitions/icon-data",
+            "required": []
+        },
+        "properties": {
+            "type": "object",
+            "properties": {
+                "sources": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                            "source": {
+                                "type": "string"
+                            }
+                        },
+                        "required": ["source"]
+                    },
+                    "minProperties": 1
+                },
+                "availabilities": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                            "availability": {
+                                "type": "string"
+                            }
+                        },
+                        "required": ["availability"]
+                    },
+                    "minProperties": 1
+                }
+            },
+            "required": []
+        }
+    },
+    "required": [
+        "data"
+    ]
+}
