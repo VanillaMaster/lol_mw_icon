@@ -83,6 +83,7 @@
             "type": "object",
             "properties": {
                 "sources": {
+                    "description": "information on how/where to obtain the icon",
                     "type": "object",
                     "additionalProperties": {
                         "type": "object",
@@ -96,6 +97,7 @@
                     "minProperties": 1
                 },
                 "availabilities": {
+                    "description": "information on the availability status of the icon",
                     "type": "object",
                     "additionalProperties": {
                         "type": "object",
