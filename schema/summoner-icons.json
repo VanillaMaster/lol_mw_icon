@@ -1,0 +1,87 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "number"
+            },
+            "title": {
+                "type": "string"
+            },
+            "yearReleased": {
+                "type": "number"
+            },
+            "isLegacy": {
+                "type": "boolean"
+            },
+            "imagePath": {
+                "type": "string"
+            },
+            "descriptions": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "region": {
+                            "type": "string"
+                        },
+                        "description": {
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "region",
+                        "description"
+                    ]
+                }
+            },
+            "rarities": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "region": {
+                            "type": "string"
+                        },
+                        "rarity": {
+                            "type": "number"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "region",
+                        "rarity"
+                    ]
+                }
+            },
+            "disabledRegions": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                }
+            },
+            "esportsTeam": {
+                "type": "string"
+            },
+            "esportsRegion": {
+                "type": "string"
+            },
+            "esportsEvent": {
+                "type": "string"
+            }
+        },
+        "additionalProperties": false,
+        "required": [
+            "id",
+            "title",
+            "yearReleased",
+            "isLegacy",
+            "descriptions",
+            "rarities",
+            "disabledRegions"
+        ]
+    }
+}

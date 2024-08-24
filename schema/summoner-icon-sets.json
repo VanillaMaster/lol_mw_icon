@@ -1,0 +1,35 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "number"
+            },
+            "hidden": {
+                "type": "boolean"
+            },
+            "displayName": {
+                "type": "string"
+            },
+            "description": {
+                "type": "string"
+            },
+            "icons": {
+                "type": "array",
+                "items": {
+                    "type": "number"
+                }
+            }
+        },
+        "additionalProperties": false,
+        "required": [
+            "id",
+            "hidden",
+            "displayName",
+            "description",
+            "icons"
+        ]
+    }
+}

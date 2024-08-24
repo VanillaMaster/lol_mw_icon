@@ -1,48 +1,59 @@
-interface RequestInit {
-    dispatcher?: import("undici").Dispatcher
-}
+import type { Dispatcher } from "undici"
 
-type RawRiotIconEntry = {
-    id: number;
-    title: string;
-    yearReleased: number;
-    isLegacy: boolean;
-    imagePath?: string;
-    descriptions: {
-        region: string
-        description: string
-    }[];
-    rarities: {
-        region: string
-        rarity: number
-    }[];
-    disabledRegions: string[];
-    esportsTeam?: string;
-    esportsRegion?: string;
-    esportsEvent?: string;
-}
+declare global {
 
-type RiotIconEntry = {
-    id: number;
-    title: string;
-    yearReleased: number;
-    isLegacy: boolean;
-    esportsTeam?: string;
-    esportsRegion?: string;
-    esportsEvent?: string;
-    descriptions: {
-        [region: string]: {
+    interface RequestInit {
+        dispatcher?: Dispatcher
+    }
+    
+    interface RawRiotIconEntry {
+        id: number;
+        title: string;
+        yearReleased: number;
+        isLegacy: boolean;
+        imagePath?: string;
+        descriptions: {
+            region: string
             description: string
-        }
-    }
-    rarities: {
-        [region: string]: {
+        }[];
+        rarities: {
+            region: string
             rarity: number
+        }[];
+        disabledRegions: string[];
+        esportsTeam?: string;
+        esportsRegion?: string;
+        esportsEvent?: string;
+    }
+    
+    interface RiotIconEntry {
+        id: number;
+        title: string;
+        yearReleased: number;
+        isLegacy: boolean;
+        esportsTeam?: string;
+        esportsRegion?: string;
+        esportsEvent?: string;
+        descriptions: {
+            [region: string]: {
+                description: string
+            }
         }
+        rarities: {
+            [region: string]: {
+                rarity: number
+            }
+        }
+        disabledRegions: string[];
+        sets: string[];
     }
-    disabledRegions: string[];
-    sets: string[];
-    image: {
-        mime: string;
+
+    interface RawRiotIconSetsEntry {
+        id: number;
+        hidden: boolean;
+        displayName: string;
+        description: string;
+        icons: number[];
     }
+    
 }
